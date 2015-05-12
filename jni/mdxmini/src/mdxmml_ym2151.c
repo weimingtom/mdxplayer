@@ -378,7 +378,7 @@ int mdx_parse_mml_ym2151_async_get_length(songdata *data)
 int
 mdx_parse_mml_ym2151_make_samples(short *buffer,int buffer_size, songdata *data)
 {
-   do_pcm8(buffer,buffer_size, data);
+   do_pcm8(buffer, buffer_size, data);
    return 0;
 }
 

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <signal.h>
-#include <SDL.h>
+#include "SDL.h"
 
 
 #ifdef USE_ICONV
@@ -12,9 +12,12 @@
 
 #include "mdxmini.h"
 
-#include "nlg.h"
+#ifdef USE_NLG
 
+#include "nlg.h"
 extern NLGCTX *nlgctx;
+
+#endif
 
 #define MDXMINI_VERSION "2014-06-01"
 
@@ -282,7 +285,6 @@ static void audio_loop_file(
     FILE *fp = NULL;
     
     int sec;
-    int last_sec;
     
     int frames;
     int total_frames;
@@ -401,7 +403,6 @@ int audio_main(int argc, char *argv[])
 	t_mdxmini mini;
 	
     char pcmpath_mem[1024];
-    char nlgpath_mem[1024];
 
     char *nlgfile = NULL;
     char *pcmpath = NULL;
@@ -507,9 +508,13 @@ int audio_main(int argc, char *argv[])
         
         char *playfile = argv[optind];
         
+#ifdef USE_NLG
+        
         // make NLG log
         if (nlg_log)
         {
+            char nlgpath_mem[1024];
+
             // NLG filename is not given
             if (!nlgfile)
             {
@@ -529,25 +534,31 @@ int audio_main(int argc, char *argv[])
             printf("CreateNLG:%s\n",nlgfile);
             nlgctx = CreateNLG(nlgfile);
         }
+
+#endif
         
         // open mdx
         if (mdx_open(&mini, playfile, pcmpath))
         {
             printf("File open error: %s\n", playfile);
+#ifdef USE_NLG
             CloseNLG(nlgctx);
             nlgctx = NULL;
             return 0;
+#endif
         }
         
         if (nosound || wavfile)
             audio_loop_file(&mini, wavfile, rate, len);
         else
             audio_loop(&mini, rate, len);
-        
+
+#ifdef USE_NLG
         CloseNLG(nlgctx);
         nlgfile = NULL;
         nlgctx = NULL;
-
+#endif
+        
         // close mdx
         mdx_close(&mini);
     }
@@ -568,7 +579,7 @@ int main(int argc, char *argv[])
 	int ret = audio_main(argc, argv);
     
 #ifdef DEBUG
-	getch();
+	// getch();
 #endif
     
 	return ret;

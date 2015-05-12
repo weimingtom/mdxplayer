@@ -67,7 +67,7 @@ struct _pcm8_instances {
 static const int adpcm_freq_list[] = {
   3900, 5200, 7800, 10400, 15600
 };
-
+#if 0
 static const unsigned char riff[]={
   'R','I','F','F',
   0xff,0xff,0xff,0xff,
@@ -80,6 +80,7 @@ static const unsigned char riff[]={
   'd','a','t','a',
   0,0,0,0
 };
+#endif
 
 /* ------------------------------------------------------------------ */
 /* class interface */
@@ -142,6 +143,7 @@ _pcm8_finalize(void* in_self)
 /* ------------------------------------------------------------------ */
 /* implementations */
 
+#if 0
 static int
 stdout_open(MDX_DATA* mdx, songdata *data)
 {
@@ -160,6 +162,7 @@ stdout_open(MDX_DATA* mdx, songdata *data)
 
   return 0;
 }
+#endif
 
 
 static void
@@ -168,11 +171,13 @@ pcm8_close_devs(void)
 //  __GETSELF;
 }
 
+#if 0
 static void
 pcm8_write_dev(unsigned char* data, int len)
 {
 //  __GETSELF;
 }
+#endif
 
 int pcm8_open( MDX_DATA *mdx, songdata *data )
 {

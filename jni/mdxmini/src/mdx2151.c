@@ -596,6 +596,61 @@ ym2151_set_freq_volume( int track, songdata *data )
   return;
 }
 
+static int calc_lfo(YM2151_LFO *lfo, int d)
+{
+    int f = 0;
+    int cl;
+    int c;
+    switch(lfo->form) {
+        case 0:
+        case 4:
+            cl = d % lfo->clock;
+            f  = lfo->depth * cl;
+            break;
+            
+        case 1:
+        case 3:
+        case 5:
+        case 7:
+            cl = d % (lfo->clock*2);
+            if ( cl<lfo->clock ) {
+                f =  lfo->depth/2;
+            } else {
+                f = -(lfo->depth/2);
+            }
+            break;
+            
+        case 2:
+        case 6:
+            cl = d % (lfo->clock*2);
+            c = cl % (lfo->clock/2);
+            switch ( cl/(lfo->clock/2) ) {
+                case 0:
+                    f = lfo->depth * c;
+                    break;
+                case 1:
+                    f = lfo->depth * (lfo->clock/2 - c );
+                    break;
+                case 2:
+                    f = -(lfo->depth * c);
+                    break;
+                case 3:
+                    f = -(lfo->depth * (lfo->clock/2 - c));
+                    break;
+                    
+                default:
+                    f = 0;
+                    break;
+            }
+            break;
+            
+        default:
+            f=0;
+            break;
+    }
+    return f;
+}
+
 static
 void freq_write( int track, songdata *data )
 {
@@ -637,55 +692,7 @@ void freq_write( int track, songdata *data )
 
   d = o->lfo_step - o->lfo_delay;
   if ( o->plfo.flag == FLAG_TRUE && d >= 0 ) {
-    int cl;
-    int c;
-    switch(o->plfo.form) {
-    case 0:
-    case 4:
-      cl = d % o->plfo.clock;
-      f  = o->plfo.depth * cl;
-      break;
-
-    case 1:
-    case 3:
-    case 5:
-    case 7:
-      cl = d % (o->plfo.clock*2);
-      if ( cl<o->plfo.clock ) {
-	f =  o->plfo.depth/2;
-      } else {
-	f = -(o->plfo.depth/2);
-      }
-      break;
-
-    case 2:
-    case 6:
-      cl = d % (o->plfo.clock*2);
-      c = cl % (o->plfo.clock/2);
-      switch ( cl/(o->plfo.clock/2) ) {
-      case 0:
-	f = o->plfo.depth * c;
-	break;
-      case 1:
-	f = o->plfo.depth * (o->plfo.clock/2 - c );
-	break;
-      case 2:
-	f = -(o->plfo.depth * c);
-	break;
-      case 3:
-	f = -(o->plfo.depth * (o->plfo.clock/2 - c));
-	break;
-
-      default:
-	f = 0;
-	break;
-      }
-      break;
-
-    default:
-      f=0;
-      break;
-    }
+    f = calc_lfo(&o->plfo, d);
 
     f/=256;
     ofs_f += f%64;          /* detune */
@@ -755,16 +762,39 @@ void volume_write( int track, songdata *data )
   o = &(self->opm[track]);
 
   /* set volume */
+  
+  // calc software lfo
+  int f = 0;
+  int d = o->lfo_step - o->lfo_delay;
+  
+  if ( o->alfo.flag == FLAG_TRUE && d >= 0 )
+  {
+        f = calc_lfo(&o->alfo, d);
+    }
 
+    
   for ( i=0 ; i<4 ; i++ ) {
     r = track + i*8;
     if ( is_vol_set[o->algorithm][i]==0 ) continue;
     
-    vol = self->master_volume * o->volume * o->total_level[i] / 127 / 127;
+    // software lfo
+    if ( o->alfo.flag == FLAG_TRUE && d >= 0 )
+    {
+        // TODO: add software lfo
+        // int vol_f = (f / 128);
+        vol = self->master_volume * o->volume * o->total_level[i] / 127 / 127;
+        // vol = (o->volume - (127  + vol_f));
+    }
+    else
+    {
+        vol = self->master_volume * o->volume * o->total_level[i] / 127 / 127;
+    }
+
     if ( vol > 127 ) vol = 127;
     if ( vol < 0 ) vol = 0;
     vol = 127-vol;
     
+
     reg_write( 0x60+r, vol, data );                  /* TL */
   }
 
@@ -789,6 +819,7 @@ reg_write( int adr, int val, songdata *data )
       WriteNLG_Data(nlgctx, CMD_OPM, adr, val);
   }
 #endif
+  // printf("Write:%02X,%02X\n", adr, val);
   if ( self->ym2151_enable == FLAG_TRUE ) {
     YM2151WriteReg( ym2151_instance(data), adr, val );
   }

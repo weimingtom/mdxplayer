@@ -50,6 +50,7 @@ static int is_fade_run(void)
 	return 0;
 }
 
+#if 0
 static int is_fade_end(void)
 {
 	if ( fade_volume > 0 || fade_count > 0 )
@@ -57,4 +58,5 @@ static int is_fade_end(void)
 
 	return 1;
 }
+#endif
 

@@ -45,8 +45,8 @@ static PDX_DATA* _get_pdx(MDX_DATA* mdx, char* mdxpath);
 static int self_construct(songdata* songdata);
 static void self_destroy(songdata* songdata);
 
-static void usage( void );
-static void display_version( void );
+// static void usage( void );
+// static void display_version( void );
 
 // static char mdx_path[1024];
 
@@ -250,15 +250,15 @@ void mdx_make_buffer( t_mdxmini *data, short *buf , int buffer_size )
 
 int mdx_calc_sample(t_mdxmini *data, short *buf, int buffer_size)
 {
-	int s_pos;
+	int pos;
 	int next,frame;
 	
 	next = 1;
-	s_pos = 0;
+	pos = 0;
 	
 	do
 	{
-		if (!data->samples)
+		if (data->samples < 1)
 		{
 #ifdef USE_NLG
             if (data->nlg_tempo != data->mdx->tempo)
@@ -274,23 +274,26 @@ int mdx_calc_sample(t_mdxmini *data, short *buf, int buffer_size)
 #endif
 			next = mdx_next_frame(data);
 			frame = mdx_frame_length(data);
-			data->samples = (data->mdx->dsp_speed * frame)/1000000;
+            
+            // 生成可能サンプル数
+			data->samples += (data->mdx->dsp_speed * frame)/1000000;
 		}
         
-        int calc_len = data->samples;
+        int len = data->samples;
         
-		if (calc_len + s_pos >= buffer_size)
-            calc_len = buffer_size - s_pos;
+		if (len + pos >= buffer_size)
+            len = buffer_size - pos;
         
+        // 生成
         mdx_parse_mml_ym2151_make_samples(
-                buf + (s_pos * data->channels),
-                calc_len,
+                buf + (pos * data->channels),
+                len,
                 data->songdata);
 			
-        data->samples -= calc_len;
-        s_pos += calc_len;
+        data->samples -= len;
+        pos += len;
 		
-	}while(s_pos < buffer_size);
+	}while(pos < buffer_size);
 
 	return next;
 }
